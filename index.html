@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-Time Calculation Engine — Discovery Session</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --blue-mid: #B5D4F4;
+    --blue-dark: #0C447C;
+    --green: #0F6E56;
+    --green-light: #E1F5EE;
+    --amber: #854F0B;
+    --amber-light: #FAEEDA;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --text: #1a1a1a;
+    --text-2: #555;
+    --text-3: #888;
+    --border: #e0ddd6;
+    --border-2: #ccc;
+    --bg: #f7f6f2;
+    --bg-card: #ffffff;
+    --bg-input: #fafaf8;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--blue-dark);
+    color: #fff;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.15);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-logo { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; opacity: 0.9; }
+  .topbar-title { font-size: 14px; font-weight: 500; border-left: 1px solid rgba(255,255,255,0.25); padding-left: 12px; }
+  .topbar-right { display: flex; gap: 8px; align-items: center; }
+  .topbar-btn {
+    font-size: 12px; font-weight: 500; padding: 5px 13px;
+    border-radius: 20px; border: 1px solid rgba(255,255,255,0.35);
+    background: transparent; color: #fff; cursor: pointer;
+    transition: background 0.15s; font-family: inherit;
+  }
+  .topbar-btn:hover { background: rgba(255,255,255,0.12); }
+  .topbar-btn.accent { background: #fff; color: var(--blue-dark); border-color: #fff; }
+  .topbar-btn.accent:hover { background: #e8f0fb; }
+
+  /* LAYOUT */
+  .shell { display: flex; min-height: calc(100vh - 52px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--bg-card);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 0;
+    position: sticky; top: 52px;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+  }
+  .sidebar-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    color: var(--text-3); text-transform: uppercase;
+    padding: 0 1.25rem 0.5rem;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 1.25rem; cursor: pointer;
+    font-size: 13px; color: var(--text-2);
+    border-left: 3px solid transparent;
+    transition: all 0.12s;
+  }
+  .nav-item:hover { background: var(--bg); color: var(--text); }
+  .nav-item.active { color: var(--blue); border-left-color: var(--blue); background: var(--blue-light); font-weight: 500; }
+  .nav-item.done { color: var(--green); }
+  .nav-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--bg); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 600; flex-shrink: 0;
+    color: var(--text-3);
+  }
+  .nav-item.active .nav-num { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .nav-item.done .nav-num { background: var(--green-light); border-color: var(--green); color: var(--green); }
+  .nav-name { flex: 1; line-height: 1.3; }
+
+  .sidebar-progress { padding: 1.25rem 1.25rem 0; border-top: 1px solid var(--border); margin-top: 1rem; }
+  .prog-track { height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; }
+  .prog-fill { height: 4px; background: var(--blue); border-radius: 2px; transition: width 0.4s ease; }
+  .prog-text { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+  /* MAIN CONTENT */
+  .main { flex: 1; padding: 2rem 2.5rem; max-width: 820px; }
+
+  /* SECTION */
+  .section { display: none; animation: fadeUp 0.2s ease; }
+  .section.active { display: block; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section-header { margin-bottom: 1.75rem; }
+  .section-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--blue); margin-bottom: 4px; }
+  .section-title { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .section-desc { font-size: 13px; color: var(--text-2); line-height: 1.55; max-width: 600px; }
+
+  .alert-box {
+    background: var(--blue-light); border: 1px solid var(--blue-mid);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    font-size: 12px; color: var(--blue-dark); line-height: 1.5;
+    margin-bottom: 1.5rem;
+  }
+
+  /* QUESTION CARD */
+  .q-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1.1rem 1.25rem;
+    margin-bottom: 1rem; transition: box-shadow 0.15s;
+  }
+  .q-card:focus-within { box-shadow: 0 0 0 2px var(--blue-mid); border-color: var(--blue); }
+  .q-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .q-num { font-size: 11px; font-weight: 600; color: var(--text-3); }
+  .q-badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; letter-spacing: 0.03em;
+  }
+  .badge-ops { background: var(--green-light); color: var(--green); }
+  .badge-tech { background: var(--blue-light); color: var(--blue); }
+  .badge-client { background: var(--amber-light); color: var(--amber); }
+  .badge-risk { background: var(--red-light); color: var(--red); }
+
+  .q-text { font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.5; margin-bottom: 5px; }
+  .q-hint { font-size: 12px; color: var(--text-3); font-style: italic; margin-bottom: 10px; line-height: 1.45; }
+
+  textarea {
+    width: 100%; min-height: 70px; resize: vertical;
+    font-size: 13px; padding: 8px 10px; line-height: 1.55;
+    border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+    background: var(--bg-input); color: var(--text);
+    font-family: inherit; transition: border-color 0.15s;
+  }
+  textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-light); }
+  textarea::placeholder { color: var(--text-3); }
+
+  /* RADIO OPTIONS */
+  .opts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+  .opt-label {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 8px 12px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); cursor: pointer;
+    transition: all 0.12s;
+  }
+  .opt-label:hover { border-color: var(--blue-mid); background: var(--blue-light); }
+  .opt-label input[type="radio"],
+  .opt-label input[type="checkbox"] { margin-top: 2px; accent-color: var(--blue); flex-shrink: 0; }
+  .opt-label.selected { border-color: var(--blue); background: var(--blue-light); }
+  .opt-main { font-size: 13px; font-weight: 500; color: var(--text); }
+  .opt-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+  /* CHIPS */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .chip {
+    font-size: 12px; padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--border-2); background: var(--bg-input);
+    color: var(--text-2); cursor: pointer; font-family: inherit;
+    transition: all 0.12s;
+  }
+  .chip:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-light); }
+  .chip.on { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  /* DETAIL BOX */
+  .detail-box { display: none; margin-top: 8px; }
+  .detail-box.show { display: block; }
+
+  /* NAV BUTTONS */
+  .btn-row { display: flex; align-items: center; gap: 10px; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+  .btn {
+    padding: 8px 20px; font-size: 13px; font-weight: 500;
+    border-radius: var(--radius-sm); border: 1px solid var(--border-2);
+    cursor: pointer; font-family: inherit; transition: all 0.12s;
+    background: var(--bg-card); color: var(--text);
+  }
+  .btn:hover { background: var(--bg); border-color: var(--blue); color: var(--blue); }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.primary:hover { background: var(--blue-dark); }
+  .btn.export-csv { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn.export-csv:hover { background: #085041; }
+  .btn.export-txt { background: var(--amber); border-color: var(--amber); color: #fff; }
+  .btn.export-txt:hover { background: #633806; }
+  .btn-gap { flex: 1; }
+
+  .autosave-note { font-size: 11px; color: var(--text-3); }
+  .save-flash { display: none; font-size: 11px; color: var(--green); font-weight: 500; }
+  .save-flash.show { display: inline; }
+
+  /* SUMMARY */
+  .sum-section { margin-bottom: 1.75rem; }
+  .sum-section-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--blue); margin-bottom: 10px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .sum-item { margin-bottom: 10px; }
+  .sum-q { font-size: 12px; color: var(--text-3); margin-bottom: 3px; }
+  .sum-a {
+    font-size: 13px; color: var(--text);
+    background: var(--bg); border-left: 3px solid var(--blue);
+    padding: 6px 10px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    white-space: pre-wrap; line-height: 1.5;
+  }
+  .sum-empty { font-size: 13px; color: var(--text-3); font-style: italic; }
+
+  .export-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1.5rem; }
+  .export-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .export-desc { font-size: 12px; color: var(--text-2); margin-bottom: 1rem; }
+  .export-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main { padding: 1.25rem; }
+    .topbar-title { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-logo">ICAL 5.0</span>
+    <span class="topbar-title">Real-Time Calculation Engine — Discovery Session</span>
+  </div>
+  <div class="topbar-right">
+    <span class="save-flash" id="save-flash">Saved ✓</span>
+    <button class="topbar-btn" onclick="saveAll()">Save progress</button>
+    <button class="topbar-btn accent" onclick="goSection(7)">View summary →</button>
+  </div>
+</div>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-label">Sections</div>
+    <div class="nav-item active" id="nav-0" onclick="goSection(0)">
+      <div class="nav-num">1</div>
+      <div class="nav-name">Index Overview</div>
+    </div>
+    <div class="nav-item" id="nav-1" onclick="goSection(1)">
+      <div class="nav-num">2</div>
+      <div class="nav-name">File Deliverables</div>
+    </div>
+    <div class="nav-item" id="nav-2" onclick="goSection(2)">
+      <div class="nav-num">3</div>
+      <div class="nav-name">Price Data</div>
+    </div>
+    <div class="nav-item" id="nav-3" onclick="goSection(3)">
+      <div class="nav-num">4</div>
+      <div class="nav-name">CA & Maintenance</div>
+    </div>
+    <div class="nav-item" id="nav-4" onclick="goSection(4)">
+      <div class="nav-num">5</div>
+      <div class="nav-name">Client Requirements</div>
+    </div>
+    <div class="nav-item" id="nav-5" onclick="goSection(5)">
+      <div class="nav-num">6</div>
+      <div class="nav-name">Gaps & Risks</div>
+    </div>
+    <div class="nav-item" id="nav-6" onclick="goSection(6)">
+      <div class="nav-num">7</div>
+      <div class="nav-name">Migration Readiness</div>
+    </div>
+    <div class="nav-item" id="nav-7" onclick="goSection(7)">
+      <div class="nav-num">∑</div>
+      <div class="nav-name">Summary & Export</div>
+    </div>
+
+    <div class="sidebar-progress">
+      <div class="sidebar-label" style="padding:0 0 4px;">Progress</div>
+      <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:12%"></div></div>
+      <div class="prog-text" id="prog-text">Section 1 of 7</div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══════════ SECTION 1 ══════════ -->
+    <div class="section active" id="s0">
+      <div class="section-header">
+        <div class="section-eyebrow">Section 1 of 7</div>
+        <div class="section-title">Index overview & classification</div>
+        <div class="section-desc">Understand the nature and structure of the 60 indices currently live with Solactive.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q1</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Of the 60 indices live with Solactive, how many fall into each category?</div>
+        <div class="q-hint">Give approximate numbers if exact is not known. e.g. Equity: 45, Fixed Income: 10, Multi-Asset: 5</div>
+        <textarea id="q1" placeholder="Equity: ___ / Fixed Income: ___ / Multi-Asset: ___ / Other: ___" oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q2</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Which indices use a divisor-based calculation methodology vs. non-divisor?</div>
+        <div class="q-hint">From Yashee's file, some are marked "Non-Divisor index" — please confirm the full split and flag any where you are unsure.</div>
+        <textarea id="q2" placeholder="Divisor-based: ___ / Non-divisor: ___ / Notes on specific indices ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q3</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Are there any indices among the 60 that are currently inactive, suspended, or pending closure?</div>
+        <div class="opts" id="q3-opts">
+          <label class="opt-label" onclick="selectOpt(this,'q3','Yes')">
+            <input type="radio" name="q3" value="Yes" onchange="toggleDetail('q3-detail','Yes',['Yes'])">
+            <div><div class="opt-main">Yes — some are inactive or being wound down</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q3','No')">
+            <input type="radio" name="q3" value="No" onchange="toggleDetail('q3-detail','No',['Yes'])">
+            <div><div class="opt-main">No — all 60 are active and live</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q3','Not sure')">
+            <input type="radio" name="q3" value="Not sure" onchange="toggleDetail('q3-detail','Not sure',['Yes'])">
+            <div><div class="opt-main">Not sure</div></div>
+          </label>
+        </div>
+        <div class="detail-box" id="q3-detail">
+          <textarea id="q3d" placeholder="If Yes — which ones and what is their current status?" oninput="autosave()"></textarea>
+        </div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q4</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">What rebalancing frequencies are used across these 60 indices?</div>
+        <div class="chip-row" id="chips-q4">
+          <button class="chip" onclick="chip(this,'q4','Daily')">Daily</button>
+          <button class="chip" onclick="chip(this,'q4','Weekly')">Weekly</button>
+          <button class="chip" onclick="chip(this,'q4','Monthly')">Monthly</button>
+          <button class="chip" onclick="chip(this,'q4','Quarterly')">Quarterly</button>
+          <button class="chip" onclick="chip(this,'q4','Semi-annual')">Semi-annual</button>
+          <button class="chip" onclick="chip(this,'q4','Annual')">Annual</button>
+          <button class="chip" onclick="chip(this,'q4','Event-driven')">Event-driven</button>
+        </div>
+        <textarea id="q4" placeholder="Additional notes or index-specific nuances ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q5</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Which exchanges / markets do constituent securities belong to, and what are the trading hours involved?</div>
+        <div class="q-hint">Critical for determining real-time calculation window requirements. Note any multi-timezone indices.</div>
+        <textarea id="q5" placeholder="e.g. NYSE/NASDAQ (9:30–16:00 ET), LSE (8:00–16:30 GMT), Tokyo (9:00–15:30 JST) ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <span class="autosave-note">Answers auto-save in your browser</span>
+        <div class="btn-gap"></div>
+        <button class="btn primary" onclick="nextSection()">Next section →</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SECTION 2 ══════════ -->
+    <div class="section" id="s1">
+      <div class="section-header">
+        <div class="section-eyebrow">Section 2 of 7</div>
+        <div class="section-title">File deliverables & dissemination</div>
+        <div class="section-desc">Map out what files Solactive generates today, where they go, and who receives them.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q6</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">What files does Solactive currently generate and deliver for these indices?</div>
+        <div class="chip-row" id="chips-q6">
+          <button class="chip" onclick="chip(this,'q6','Open file')">Open file</button>
+          <button class="chip" onclick="chip(this,'q6','Close file')">Close file</button>
+          <button class="chip" onclick="chip(this,'q6','CA file')">CA file</button>
+          <button class="chip" onclick="chip(this,'q6','T2 file')">T2 file</button>
+          <button class="chip" onclick="chip(this,'q6','T3 file')">T3 file</button>
+          <button class="chip" onclick="chip(this,'q6','Composition file')">Composition file</button>
+          <button class="chip" onclick="chip(this,'q6','Divisor file')">Divisor file</button>
+          <button class="chip" onclick="chip(this,'q6','Real-time feed')">Real-time feed</button>
+          <button class="chip" onclick="chip(this,'q6','Historical data')">Historical data</button>
+        </div>
+        <textarea id="q6" placeholder="For T2/T3 format indices — explain what is in those files, their exact structure and timing ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q7</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Who currently receives these files — which clients and through what delivery mechanism?</div>
+        <div class="q-hint">e.g. SFTP, API, email, Bloomberg SFTP, direct dissemination by Solactive to client, etc.</div>
+        <textarea id="q7" placeholder="Map each file type to its recipients and delivery method ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q8</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">For the 60 Solactive indices, where does Solactive disseminate real-time index levels directly?</div>
+        <div class="chip-row" id="chips-q8">
+          <button class="chip" onclick="chip(this,'q8','Bloomberg (BBG)')">Bloomberg (BBG)</button>
+          <button class="chip" onclick="chip(this,'q8','Thomson Reuters (TR)')">Thomson Reuters (TR)</button>
+          <button class="chip" onclick="chip(this,'q8','FactSet')">FactSet</button>
+          <button class="chip" onclick="chip(this,'q8','SIX')">SIX</button>
+        </div>
+        <textarea id="q8" placeholder="Any other platforms? Are these dissemination contracts managed by Solactive directly or by your team?" oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q9</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">What is the file delivery SLA / timing currently expected by clients?</div>
+        <div class="q-hint">e.g. T files by 7 PM, close file by 8 PM. Break down by file type if SLAs differ across indices or clients.</div>
+        <textarea id="q9" placeholder="File type → SLA / cutoff time → client(s) affected ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q10</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">For the STOXX-live indices, describe the current workflow — what files do you send to STOXX, what do they return, and how do you process and disseminate?</div>
+        <div class="q-hint">This helps us model the equivalent workflow we'd need to build internally.</div>
+        <textarea id="q10" placeholder="Your input file → STOXX processing → their output file → your downstream steps → client delivery ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="prevSection()">← Back</button>
+        <div class="btn-gap"></div>
+        <button class="btn primary" onclick="nextSection()">Next section →</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SECTION 3 ══════════ -->
+    <div class="section" id="s2">
+      <div class="section-header">
+        <div class="section-eyebrow">Section 3 of 7</div>
+        <div class="section-title">Price data sourcing & precision</div>
+        <div class="section-desc">Understand current and future data sourcing requirements for real-time calculation.</div>
+      </div>
+
+      <div class="alert-box">
+        <strong>Context:</strong> Current engine uses InfoTrie (full coverage), BBG (selective), STOXX (live-indices only). Revamped EOD engine is moving to Quodd + BBG + STOXX. FactSet under consideration as secondary/governance source.
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q11</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">What price types does Solactive use for real-time calculation — Last Trade, Bid/Ask, Official Price, or a blended approach?</div>
+        <textarea id="q11" placeholder="Describe per index type if it varies ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q12</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">What is the frequency of price updates Solactive uses to recalculate real-time index values?</div>
+        <div class="opts">
+          <label class="opt-label" onclick="selectOpt(this,'q12','Tick by tick')">
+            <input type="radio" name="q12" value="Tick by tick" onchange="toggleDetail('q12-detail','Tick by tick',['Other','Varies'])">
+            <div><div class="opt-main">Tick by tick (every trade)</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q12','Every 15 seconds')">
+            <input type="radio" name="q12" value="Every 15 seconds" onchange="toggleDetail('q12-detail','Every 15 seconds',['Other','Varies'])">
+            <div><div class="opt-main">Every 15 seconds</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q12','Every 30 seconds')">
+            <input type="radio" name="q12" value="Every 30 seconds" onchange="toggleDetail('q12-detail','Every 30 seconds',['Other','Varies'])">
+            <div><div class="opt-main">Every 30 seconds</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q12','Every 60 seconds')">
+            <input type="radio" name="q12" value="Every 60 seconds" onchange="toggleDetail('q12-detail','Every 60 seconds',['Other','Varies'])">
+            <div><div class="opt-main">Every 60 seconds</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q12','Varies by index')">
+            <input type="radio" name="q12" value="Varies by index" onchange="toggleDetail('q12-detail','Varies by index',['Varies by index'])">
+            <div><div class="opt-main">Varies by index</div></div>
+          </label>
+        </div>
+        <div class="detail-box" id="q12-detail">
+          <textarea id="q12d" placeholder="Specify per index or index group ..." oninput="autosave()"></textarea>
+        </div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q13</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">Solactive calculates to 10 decimal places; ICAL currently supports only 4. What precision do clients actually require in practice?</div>
+        <div class="q-hint">Are there contractual obligations specifying precision, or is it just convention?</div>
+        <textarea id="q13" placeholder="Note if different clients or index types require different precision levels ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q14</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">For FX rates — what source and timing does Solactive use for intraday FX conversion? How critical is this for multi-currency indices?</div>
+        <textarea id="q14" placeholder="e.g. WM/Reuters 4pm fix, ECB, real-time spot, specific cutoff time — note which indices are affected ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q15</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">For the revamped real-time engine, which price source should be primary per asset class / exchange? Do we have real-time data contracts with Quodd or BBG covering these securities?</div>
+        <textarea id="q15" placeholder="Identify any gaps — securities for which we currently have no real-time price feed ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q16</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">How does Solactive handle stale or missing prices during market hours? What fallback logic do they use?</div>
+        <textarea id="q16" placeholder="e.g. use last known price, halt index, apply haircut — note if there are index-specific rules ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="prevSection()">← Back</button>
+        <div class="btn-gap"></div>
+        <button class="btn primary" onclick="nextSection()">Next section →</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SECTION 4 ══════════ -->
+    <div class="section" id="s3">
+      <div class="section-header">
+        <div class="section-eyebrow">Section 4 of 7</div>
+        <div class="section-title">Corporate actions & index maintenance</div>
+        <div class="section-desc">The biggest identified gap. Understand what Solactive does that ICAL currently cannot match.</div>
+      </div>
+
+      <div class="alert-box">
+        <strong>Per MOM (2-Apr-2026):</strong> CA treatment methodology is the most critical risk. Solactive's index maintenance rules also differ from ICAL's existing processes.
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q17</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">What corporate action types does Solactive handle, and how does their treatment differ from ICAL's current methodology?</div>
+        <div class="chip-row" id="chips-q17">
+          <button class="chip" onclick="chip(this,'q17','Cash dividends')">Cash dividends</button>
+          <button class="chip" onclick="chip(this,'q17','Stock splits')">Stock splits</button>
+          <button class="chip" onclick="chip(this,'q17','Rights issues')">Rights issues</button>
+          <button class="chip" onclick="chip(this,'q17','Spin-offs')">Spin-offs</button>
+          <button class="chip" onclick="chip(this,'q17','Mergers / M&A')">Mergers / M&A</button>
+          <button class="chip" onclick="chip(this,'q17','Special dividends')">Special dividends</button>
+          <button class="chip" onclick="chip(this,'q17','Scrip dividends')">Scrip dividends</button>
+          <button class="chip" onclick="chip(this,'q17','Tender offers')">Tender offers</button>
+          <button class="chip" onclick="chip(this,'q17','Bankruptcy / delisting')">Bankruptcy / delisting</button>
+        </div>
+        <textarea id="q17" placeholder="For each CA type — how does Solactive apply it intraday vs. at close? Where does ICAL currently differ? ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q18</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">How are ex-dividend dates and CA events reflected in real-time index levels by Solactive — applied at market open, intraday, or only at close?</div>
+        <textarea id="q18" placeholder="Describe timing and any index-specific variations ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q19</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">How does Solactive handle mid-day constituent replacements (e.g. emergency replacement due to suspension or delisting)?</div>
+        <textarea id="q19" placeholder="What is the process and timing? Does ICAL support any equivalent mechanism?" oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q20</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Are there special index maintenance rules unique to specific indices — capping logic, buffer rules, country/sector constraints applied intraday?</div>
+        <textarea id="q20" placeholder="List index-specific rules that are non-standard or custom ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q21</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">Which of these CA / maintenance gaps are absolute blockers for migration vs. nice-to-have improvements?</div>
+        <div class="q-hint">P1 = must have before any migration | P2 = required eventually | P3 = enhancement only</div>
+        <textarea id="q21" placeholder="P1 (blockers): ...&#10;P2 (required eventually): ...&#10;P3 (enhancements): ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="prevSection()">← Back</button>
+        <div class="btn-gap"></div>
+        <button class="btn primary" onclick="nextSection()">Next section →</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SECTION 5 ══════════ -->
+    <div class="section" id="s4">
+      <div class="section-header">
+        <div class="section-eyebrow">Section 5 of 7</div>
+        <div class="section-title">Client requirements & sensitivity</div>
+        <div class="section-desc">Understand client expectations and their tolerance for any change during migration.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q22</span><span class="q-badge badge-client">Client</span></div>
+        <div class="q-text">Which clients are most sensitive to real-time index level accuracy, and what is the acceptable tolerance for deviation (if any)?</div>
+        <div class="q-hint">Clients include: Life Sciences, Excellence, Global X, Migdal, Mirae Asset, US Global, Tachlit, Infracap, Smartx, BetaShares, Direxion, Horizon ETFs, Kiwoom.</div>
+        <textarea id="q22" placeholder="Client → sensitivity level (High/Med/Low) → known tolerance threshold ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q23</span><span class="q-badge badge-client">Client</span></div>
+        <div class="q-text">Do any clients have contractual SLAs with Solactive for real-time dissemination latency?</div>
+        <div class="opts">
+          <label class="opt-label" onclick="selectOpt(this,'q23','Yes')">
+            <input type="radio" name="q23" value="Yes" onchange="toggleDetail('q23-detail','Yes',['Yes'])">
+            <div><div class="opt-main">Yes — contractual SLAs exist</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q23','No')">
+            <input type="radio" name="q23" value="No" onchange="toggleDetail('q23-detail','No',['Yes'])">
+            <div><div class="opt-main">No formal SLAs</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q23','Unknown')">
+            <input type="radio" name="q23" value="Unknown" onchange="toggleDetail('q23-detail','Unknown',['Yes'])">
+            <div><div class="opt-main">Not known — need to check</div></div>
+          </label>
+        </div>
+        <div class="detail-box" id="q23-detail">
+          <textarea id="q23d" placeholder="Specify latency requirements and which clients / indices they apply to ..." oninput="autosave()"></textarea>
+        </div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q24</span><span class="q-badge badge-client">Client</span></div>
+        <div class="q-text">Are any of these 60 indices used as underlying for ETFs, derivatives, or structured products where real-time accuracy is a regulatory or exchange requirement?</div>
+        <div class="opts">
+          <label class="opt-label" onclick="selectOpt(this,'q24','Yes')">
+            <input type="radio" name="q24" value="Yes" onchange="toggleDetail('q24-detail','Yes',['Yes','Some'])">
+            <div><div class="opt-main">Yes — all of them</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q24','Some')">
+            <input type="radio" name="q24" value="Some" onchange="toggleDetail('q24-detail','Some',['Yes','Some'])">
+            <div><div class="opt-main">Some of them</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q24','No')">
+            <input type="radio" name="q24" value="No" onchange="toggleDetail('q24-detail','No',['Yes','Some'])">
+            <div><div class="opt-main">No</div></div>
+          </label>
+        </div>
+        <div class="detail-box" id="q24-detail">
+          <textarea id="q24d" placeholder="List indices → product type (ETF/derivative/structured) → regulatory body involved ..." oninput="autosave()"></textarea>
+        </div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q25</span><span class="q-badge badge-client">Client</span></div>
+        <div class="q-text">Have any clients already been informed about a potential migration from Solactive? What is their stance?</div>
+        <div class="opts">
+          <label class="opt-label" onclick="selectOpt(this,'q25','None informed')">
+            <input type="radio" name="q25" value="None informed" onchange="toggleDetail('q25-detail','None informed',['Some informed','All informed'])">
+            <div><div class="opt-main">None have been informed</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q25','Some informed')">
+            <input type="radio" name="q25" value="Some informed" onchange="toggleDetail('q25-detail','Some informed',['Some informed','All informed'])">
+            <div><div class="opt-main">Some have been informed</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q25','All informed')">
+            <input type="radio" name="q25" value="All informed" onchange="toggleDetail('q25-detail','All informed',['Some informed','All informed'])">
+            <div><div class="opt-main">All have been informed</div></div>
+          </label>
+        </div>
+        <div class="detail-box" id="q25-detail">
+          <textarea id="q25d" placeholder="Describe reactions, concerns raised, approvals needed ..." oninput="autosave()"></textarea>
+        </div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q26</span><span class="q-badge badge-client">Client</span></div>
+        <div class="q-text">What is the minimum parallel run period clients would accept before Solactive is switched off for a given index?</div>
+        <textarea id="q26" placeholder="e.g. 1 month, 3 months, one full rebalancing cycle — note if any client has approval rights over the switch-off ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="prevSection()">← Back</button>
+        <div class="btn-gap"></div>
+        <button class="btn primary" onclick="nextSection()">Next section →</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SECTION 6 ══════════ -->
+    <div class="section" id="s5">
+      <div class="section-header">
+        <div class="section-eyebrow">Section 6 of 7</div>
+        <div class="section-title">Gaps, risks & engine requirements</div>
+        <div class="section-desc">Systematically identify what the revamped ICAL engine must support before migration can happen.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q27</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">Beyond the gaps listed in the MOM (CA treatment, decimal precision, FX rates, index maintenance) — are there any other known functional gaps between Solactive and ICAL?</div>
+        <div class="q-hint">Flag if any were the original reason these 60 indices couldn't be moved to STOXX previously.</div>
+        <textarea id="q27" placeholder="List all gaps — even if they seem minor ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q28</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">What manual interventions or workarounds does the Ops team currently do with Solactive-calculated indices that would need to be automated in ICAL?</div>
+        <textarea id="q28" placeholder="e.g. manual overrides, file format conversions, timing adjustments, cross-checks before client delivery ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q29</span><span class="q-badge badge-risk">Risk</span></div>
+        <div class="q-text">What is the impact on Ops team bandwidth if some indices go live on revamped ICAL while others remain on Solactive during the transition?</div>
+        <textarea id="q29" placeholder="Current Ops effort per index/group for Solactive-managed indices + estimated additional effort during parallel run ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q30</span><span class="q-badge badge-risk">Risk</span></div>
+        <div class="q-text">What is the operational risk if there is a discrepancy between Solactive's real-time values and ICAL's during parallel testing? How would this be triaged?</div>
+        <textarea id="q30" placeholder="Who owns discrepancy investigation? What is the escalation path? What threshold triggers an alert? ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q31</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">Does ICAL or the revamped engine support a dissemination layer — i.e. the ability to push real-time values directly to BBG / TR / FactSet? If not, is that a dependency we need to build?</div>
+        <div class="opts">
+          <label class="opt-label" onclick="selectOpt(this,'q31','Yes, supported')">
+            <input type="radio" name="q31" value="Yes, supported" onchange="toggleDetail('q31-detail','Yes, supported',['Partially','No — dependency to build'])">
+            <div><div class="opt-main">Yes — already supported</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q31','Partially')">
+            <input type="radio" name="q31" value="Partially" onchange="toggleDetail('q31-detail','Partially',['Partially','No — dependency to build'])">
+            <div><div class="opt-main">Partially — some platforms but not all</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q31','No — dependency to build')">
+            <input type="radio" name="q31" value="No — dependency to build" onchange="toggleDetail('q31-detail','No — dependency to build',['Partially','No — dependency to build'])">
+            <div><div class="opt-main">No — this is a dependency to build</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q31','Unknown')">
+            <input type="radio" name="q31" value="Unknown" onchange="toggleDetail('q31-detail','Unknown',['Partially','No — dependency to build'])">
+            <div><div class="opt-main">Not known</div></div>
+          </label>
+        </div>
+        <div class="detail-box" id="q31-detail">
+          <textarea id="q31d" placeholder="Additional notes on dissemination capability / gaps ..." oninput="autosave()"></textarea>
+        </div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q32</span><span class="q-badge badge-risk">Risk</span></div>
+        <div class="q-text">Are there any contractual notice periods or obligations with Solactive that constrain the migration timeline?</div>
+        <div class="opts">
+          <label class="opt-label" onclick="selectOpt(this,'q32','Yes')">
+            <input type="radio" name="q32" value="Yes" onchange="toggleDetail('q32-detail','Yes',['Yes'])">
+            <div><div class="opt-main">Yes</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q32','No')">
+            <input type="radio" name="q32" value="No" onchange="toggleDetail('q32-detail','No',['Yes'])">
+            <div><div class="opt-main">No</div></div>
+          </label>
+          <label class="opt-label" onclick="selectOpt(this,'q32','Unknown')">
+            <input type="radio" name="q32" value="Unknown" onchange="toggleDetail('q32-detail','Unknown',['Yes'])">
+            <div><div class="opt-main">Not known — needs legal/commercial check</div></div>
+          </label>
+        </div>
+        <div class="detail-box" id="q32-detail">
+          <textarea id="q32d" placeholder="Notice period, contract renewal date, any mutual termination clauses ..." oninput="autosave()"></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="prevSection()">← Back</button>
+        <div class="btn-gap"></div>
+        <button class="btn primary" onclick="nextSection()">Next section →</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SECTION 7 ══════════ -->
+    <div class="section" id="s6">
+      <div class="section-header">
+        <div class="section-eyebrow">Section 7 of 7</div>
+        <div class="section-title">Migration readiness & prioritization</div>
+        <div class="section-desc">Establish a prioritization framework and identify the first candidates for migration.</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q33</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Which of the 60 indices are highest priority to migrate, and why? (business value, contract risk, simplicity, client demand)</div>
+        <textarea id="q33" placeholder="Top 5–10 candidates with rationale. Flag if any are priority due to cost savings or client-specific pressure ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q34</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Are there any indices that should NOT be migrated in the near term, even after the engine supports real-time calculation?</div>
+        <textarea id="q34" placeholder="List and explain why they should stay on Solactive longer (client relationships, index complexity, regulatory reasons) ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q35</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">What does a complete testing framework look like for parallel run validation? What outputs need to match between Solactive and ICAL before sign-off?</div>
+        <div class="q-hint">e.g. intraday level comparison, file-by-file comparison, CA event testing, rebalancing event testing — specify tolerance thresholds.</div>
+        <textarea id="q35" placeholder="Test types → what is compared → pass/fail threshold → sign-off authority ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q36</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Who from Ops will own parallel testing for each index group? Is there sufficient bandwidth, or do we need to phase migrations?</div>
+        <textarea id="q36" placeholder="Name owners, flag bandwidth constraints, suggest phasing if needed ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q37</span><span class="q-badge badge-tech">Tech</span></div>
+        <div class="q-text">What additional documentation or specifications should Ops prepare to hand off to Tech/Product as input for developing the real-time calculation feature?</div>
+        <textarea id="q37" placeholder="e.g. index methodology docs, CA treatment spec, file format specs, client SLA documents, dissemination contracts ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="q-card">
+        <div class="q-top"><span class="q-num">Q38</span><span class="q-badge badge-ops">Ops</span></div>
+        <div class="q-text">Any other dependencies, concerns, or open questions from the Ops team not yet captured in this session?</div>
+        <textarea id="q38" placeholder="Open floor — anything not covered above ..." oninput="autosave()"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="prevSection()">← Back</button>
+        <div class="btn-gap"></div>
+        <button class="btn primary" onclick="nextSection()">View Summary & Export →</button>
+      </div>
+    </div>
+
+    <!-- ══════════ SUMMARY ══════════ -->
+    <div class="section" id="s7">
+      <div class="section-header">
+        <div class="section-eyebrow">Summary</div>
+        <div class="section-title">All captured responses</div>
+        <div class="section-desc">Review everything captured. Export as CSV (for spreadsheet) or TXT (for document/email).</div>
+      </div>
+
+      <div class="export-section">
+        <div class="export-title">Export responses</div>
+        <div class="export-desc">Both formats include all questions and answers. CSV opens in Excel/Sheets. TXT is ready to paste into email or a document.</div>
+        <div class="export-row">
+          <button class="btn export-csv" onclick="exportCSV()">⬇ Download CSV (Excel/Sheets)</button>
+          <button class="btn export-txt" onclick="exportTXT()">⬇ Download TXT (document/email)</button>
+        </div>
+      </div>
+
+      <div id="summary-body"></div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="prevSection()">← Back to questions</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  let current = 0;
+  const chips = {};
+
+  const SECTIONS = [
+    'Index Overview','File Deliverables','Price Data',
+    'CA & Maintenance','Client Requirements','Gaps & Risks',
+    'Migration Readiness','Summary & Export'
+  ];
+
+  const QUESTIONS = [
+    ['Section 1: Index overview & classification',[
+      ['Q1','Index categories (count per type)','q1',null],
+      ['Q2','Divisor vs. non-divisor split','q2',null],
+      ['Q3','Inactive/suspended indices','q3','q3d'],
+      ['Q4','Rebalancing frequencies','q4','q4_chips'],
+      ['Q5','Exchanges / markets & trading hours','q5',null]
+    ]],
+    ['Section 2: File deliverables & dissemination',[
+      ['Q6','Files generated by Solactive','q6','q6_chips'],
+      ['Q7','File recipients & delivery mechanism','q7',null],
+      ['Q8','Real-time dissemination platforms','q8','q8_chips'],
+      ['Q9','File delivery SLAs / timing','q9',null],
+      ['Q10','STOXX round-trip workflow','q10',null]
+    ]],
+    ['Section 3: Price data sourcing & precision',[
+      ['Q11','Price types used by Solactive','q11',null],
+      ['Q12','Price update frequency','q12','q12d'],
+      ['Q13','Required decimal precision','q13',null],
+      ['Q14','FX rate source & timing','q14',null],
+      ['Q15','Real-time price source for revamped engine','q15',null],
+      ['Q16','Stale/missing price fallback logic','q16',null]
+    ]],
+    ['Section 4: Corporate actions & index maintenance',[
+      ['Q17','CA types & methodology gaps','q17','q17_chips'],
+      ['Q18','Ex-dividend / CA intraday application timing','q18',null],
+      ['Q19','Mid-day constituent replacements','q19',null],
+      ['Q20','Index-specific maintenance rules','q20',null],
+      ['Q21','Priority classification of CA gaps (P1/P2/P3)','q21',null]
+    ]],
+    ['Section 5: Client requirements & sensitivity',[
+      ['Q22','Client sensitivity & deviation tolerance','q22',null],
+      ['Q23','Contractual SLAs for real-time dissemination','q23','q23d'],
+      ['Q24','Indices underlying ETFs / derivatives','q24','q24d'],
+      ['Q25','Client awareness of migration','q25','q25d'],
+      ['Q26','Minimum parallel run period','q26',null]
+    ]],
+    ['Section 6: Gaps, risks & engine requirements',[
+      ['Q27','Additional functional gaps beyond MOM','q27',null],
+      ['Q28','Manual Ops interventions to automate','q28',null],
+      ['Q29','Ops bandwidth impact during transition','q29',null],
+      ['Q30','Discrepancy triage & escalation path','q30',null],
+      ['Q31','ICAL dissemination layer capability','q31','q31d'],
+      ['Q32','Solactive contractual notice periods','q32','q32d']
+    ]],
+    ['Section 7: Migration readiness & prioritization',[
+      ['Q33','Highest priority indices for migration','q33',null],
+      ['Q34','Indices to keep on Solactive longer','q34',null],
+      ['Q35','Parallel testing framework & thresholds','q35',null],
+      ['Q36','Ops owners for parallel testing','q36',null],
+      ['Q37','Documentation required for Tech handoff','q37',null],
+      ['Q38','Open questions / additional concerns','q38',null]
+    ]]
+  ];
+
+  function goSection(n) {
+    document.getElementById('s'+current).classList.remove('active');
+    document.getElementById('nav-'+current).classList.remove('active');
+    current = n;
+    document.getElementById('s'+current).classList.add('active');
+    document.getElementById('nav-'+current).classList.add('active');
+    updateProgress();
+    if (current === 7) renderSummary();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function nextSection() { if(current<7) goSection(current+1); }
+  function prevSection() { if(current>0) goSection(current-1); }
+
+  function updateProgress() {
+    const pct = Math.round((current/7)*100);
+    document.getElementById('prog-fill').style.width = pct+'%';
+    document.getElementById('prog-text').textContent =
+      current < 7 ? 'Section '+(current+1)+' of 7' : 'Summary';
+  }
+
+  function selectOpt(el, name, val) {
+    document.querySelectorAll('[name="'+name+'"]').forEach(r=>{
+      r.closest('.opt-label').classList.remove('selected');
+    });
+    el.classList.add('selected');
+  }
+
+  function toggleDetail(id, val, showVals) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('show', showVals.includes(val));
+    autosave();
+  }
+
+  function chip(el, key, val) {
+    el.classList.toggle('on');
+    if (!chips[key]) chips[key] = new Set();
+    if (el.classList.contains('on')) chips[key].add(val);
+    else chips[key].delete(val);
+    autosave();
+  }
+
+  function getChips(key) {
+    return chips[key] ? Array.from(chips[key]).join('; ') : '';
+  }
+
+  function getField(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+
+  function getRadio(name) {
+    const el = document.querySelector('[name="'+name+'"]:checked');
+    return el ? el.value : '';
+  }
+
+  function autosave() {
+    try {
+      localStorage.setItem('rtcq_v1', JSON.stringify(collectAll()));
+    } catch(e){}
+    const fl = document.getElementById('save-flash');
+    fl.classList.add('show');
+    clearTimeout(fl._t);
+    fl._t = setTimeout(()=>fl.classList.remove('show'), 1500);
+  }
+
+  function saveAll() { autosave(); }
+
+  function collectAll() {
+    return {
+      q1:getField('q1'), q2:getField('q2'),
+      q3:getRadio('q3'), q3d:getField('q3d'),
+      q4_chips:getChips('q4'), q4:getField('q4'),
+      q5:getField('q5'),
+      q6_chips:getChips('q6'), q6:getField('q6'),
+      q7:getField('q7'),
+      q8_chips:getChips('q8'), q8:getField('q8'),
+      q9:getField('q9'), q10:getField('q10'),
+      q11:getField('q11'),
+      q12:getRadio('q12'), q12d:getField('q12d'),
+      q13:getField('q13'), q14:getField('q14'),
+      q15:getField('q15'), q16:getField('q16'),
+      q17_chips:getChips('q17'), q17:getField('q17'),
+      q18:getField('q18'), q19:getField('q19'),
+      q20:getField('q20'), q21:getField('q21'),
+      q22:getField('q22'),
+      q23:getRadio('q23'), q23d:getField('q23d'),
+      q24:getRadio('q24'), q24d:getField('q24d'),
+      q25:getRadio('q25'), q25d:getField('q25d'),
+      q26:getField('q26'),
+      q27:getField('q27'), q28:getField('q28'),
+      q29:getField('q29'), q30:getField('q30'),
+      q31:getRadio('q31'), q31d:getField('q31d'),
+      q32:getRadio('q32'), q32d:getField('q32d'),
+      q33:getField('q33'), q34:getField('q34'),
+      q35:getField('q35'), q36:getField('q36'),
+      q37:getField('q37'), q38:getField('q38')
+    };
+  }
+
+  function getAnswer(d, qKey, detailKey) {
+    let parts = [];
+    if (qKey.endsWith('_chips')) {
+      const v = d[qKey]; if(v) parts.push('Selected: '+v);
+      const base = qKey.replace('_chips','');
+      const note = d[base]; if(note) parts.push('Notes: '+note);
+    } else {
+      const v = d[qKey]; if(v) parts.push(v);
+      if (detailKey && d[detailKey]) parts.push('Detail: '+d[detailKey]);
+    }
+    return parts.join('\n') || '';
+  }
+
+  function renderSummary() {
+    const d = collectAll();
+    let html = '';
+    QUESTIONS.forEach(([secTitle, qs]) => {
+      html += '<div class="sum-section"><div class="sum-section-title">'+secTitle+'</div>';
+      qs.forEach(([num, label, key, extra]) => {
+        let ans = '';
+        if (extra && extra.endsWith('_chips')) {
+          const chips_val = d[extra] ? 'Selected: '+d[extra] : '';
+          const text_val = d[key] || '';
+          ans = [chips_val, text_val ? 'Notes: '+text_val : ''].filter(Boolean).join('\n');
+        } else {
+          const radio_or_text = d[key] || '';
+          const detail = extra ? (d[extra] || '') : '';
+          ans = [radio_or_text, detail ? 'Detail: '+detail : ''].filter(Boolean).join('\n');
+        }
+        html += '<div class="sum-item"><div class="sum-q">'+num+' &mdash; '+label+'</div>';
+        if (ans) html += '<div class="sum-a">'+ans.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>';
+        else html += '<div class="sum-empty">No response captured</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+    document.getElementById('summary-body').innerHTML = html;
+  }
+
+  function csvEscape(s) {
+    if (!s) return '';
+    s = s.replace(/"/g,'""');
+    return '"'+s+'"';
+  }
+
+  function exportCSV() {
+    const d = collectAll();
+    const ts = new Date().toLocaleString();
+    let rows = [['Session','Real-Time Calculation Engine — Discovery Session'],['Date',ts],['',''],['Section','Question #','Question','Response']];
+    QUESTIONS.forEach(([secTitle, qs]) => {
+      qs.forEach(([num, label, key, extra]) => {
+        let ans = '';
+        if (extra && extra.endsWith('_chips')) {
+          const cv = d[extra] ? 'Selected: '+d[extra] : '';
+          const tv = d[key] ? 'Notes: '+d[key] : '';
+          ans = [cv,tv].filter(Boolean).join(' | ');
+        } else {
+          const rv = d[key] || '';
+          const dv = extra ? (d[extra] ? 'Detail: '+d[extra] : '') : '';
+          ans = [rv,dv].filter(Boolean).join(' | ');
+        }
+        rows.push([secTitle, num, label, ans]);
+      });
+    });
+    const csv = rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');
+    download('RTC_Discovery_Responses.csv', csv, 'text/csv');
+  }
+
+  function exportTXT() {
+    const d = collectAll();
+    const ts = new Date().toLocaleString();
+    let txt = 'REAL-TIME CALCULATION ENGINE — DISCOVERY SESSION\n';
+    txt += 'Generated: '+ts+'\n';
+    txt += '='.repeat(65)+'\n\n';
+    QUESTIONS.forEach(([secTitle, qs]) => {
+      txt += secTitle.toUpperCase()+'\n'+'-'.repeat(50)+'\n\n';
+      qs.forEach(([num, label, key, extra]) => {
+        let ans = '';
+        if (extra && extra.endsWith('_chips')) {
+          const cv = d[extra] ? 'Selected: '+d[extra] : '';
+          const tv = d[key] ? 'Notes: '+d[key] : '';
+          ans = [cv,tv].filter(Boolean).join('\n  ');
+        } else {
+          const rv = d[key] || '(no response)';
+          const dv = extra && d[extra] ? '\n  Detail: '+d[extra] : '';
+          ans = rv+dv;
+        }
+        txt += num+': '+label+'\n  '+ans+'\n\n';
+      });
+    });
+    download('RTC_Discovery_Responses.txt', txt, 'text/plain');
+  }
+
+  function download(filename, content, type) {
+    const blob = new Blob([content], {type});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Restore from localStorage
+  try {
+    const saved = localStorage.getItem('rtcq_v1');
+    if (saved) {
+      const d = JSON.parse(saved);
+      Object.keys(d).forEach(k => {
+        if (k.endsWith('_chips')) {
+          if (d[k]) {
+            const chipKey = k.replace('_chips','');
+            d[k].split('; ').forEach(val => {
+              const btn = Array.from(document.querySelectorAll('#chips-'+chipKey+' .chip'))
+                .find(b => b.textContent === val);
+              if (btn) { btn.classList.add('on'); if(!chips[chipKey]) chips[chipKey]=new Set(); chips[chipKey].add(val); }
+            });
+          }
+        } else {
+          const el = document.getElementById(k);
+          if (el && el.tagName==='TEXTAREA') el.value = d[k]||'';
+          if (!k.endsWith('d') && d[k]) {
+            const radio = document.querySelector('[name="'+k+'"][value="'+CSS.escape(d[k])+'"]');
+            if (radio) {
+              radio.checked = true;
+              radio.closest('.opt-label').classList.add('selected');
+            }
+          }
+        }
+      });
+    }
+  } catch(e){}
+</script>
+</body>
+</html>
