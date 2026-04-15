@@ -309,12 +309,12 @@
       <div class="section-header">
         <div class="section-eyebrow">Section 1 of 7</div>
         <div class="section-title">Index overview & classification</div>
-        <div class="section-desc">Understand the nature and structure of the 60 indices currently live with Solactive.</div>
+        <div class="section-desc">Understand the nature and structure of the indices currently live with Solactive.</div>
       </div>
 
       <div class="q-card">
         <div class="q-top"><span class="q-num">Q1</span><span class="q-badge badge-ops">Ops</span></div>
-        <div class="q-text">Of the 60 indices live with Solactive, how many fall into each category?</div>
+        <div class="q-text">Of all the indices live with Solactive, how many fall into each category?</div>
         <div class="q-hint">Give approximate numbers if exact is not known. e.g. Equity: 45, Fixed Income: 10, Multi-Asset: 5</div>
         <textarea id="q1" placeholder="Equity: ___ / Fixed Income: ___ / Multi-Asset: ___ / Other: ___" oninput="autosave()"></textarea>
       </div>
@@ -328,7 +328,7 @@
 
       <div class="q-card">
         <div class="q-top"><span class="q-num">Q3</span><span class="q-badge badge-ops">Ops</span></div>
-        <div class="q-text">Are there any indices among the 60 that are currently inactive, suspended, or pending closure?</div>
+        <div class="q-text">Are there any indices among the ones live with Solactive that are currently inactive, suspended, or pending closure?</div>
         <div class="opts" id="q3-opts">
           <label class="opt-label" onclick="selectOpt(this,'q3','Yes')">
             <input type="radio" name="q3" value="Yes" onchange="toggleDetail('q3-detail','Yes',['Yes'])">
@@ -336,7 +336,7 @@
           </label>
           <label class="opt-label" onclick="selectOpt(this,'q3','No')">
             <input type="radio" name="q3" value="No" onchange="toggleDetail('q3-detail','No',['Yes'])">
-            <div><div class="opt-main">No — all 60 are active and live</div></div>
+            <div><div class="opt-main">No — all are active and live</div></div>
           </label>
           <label class="opt-label" onclick="selectOpt(this,'q3','Not sure')">
             <input type="radio" name="q3" value="Not sure" onchange="toggleDetail('q3-detail','Not sure',['Yes'])">
@@ -350,7 +350,7 @@
 
       <div class="q-card">
         <div class="q-top"><span class="q-num">Q4</span><span class="q-badge badge-ops">Ops</span></div>
-        <div class="q-text">What rebalancing frequencies are used across these 60 indices?</div>
+        <div class="q-text">What rebalancing frequencies are used across these indices?</div>
         <div class="chip-row" id="chips-q4">
           <button class="chip" onclick="chip(this,'q4','Daily')">Daily</button>
           <button class="chip" onclick="chip(this,'q4','Weekly')">Weekly</button>
@@ -411,7 +411,7 @@
 
       <div class="q-card">
         <div class="q-top"><span class="q-num">Q8</span><span class="q-badge badge-ops">Ops</span></div>
-        <div class="q-text">For the 60 Solactive indices, where does Solactive disseminate real-time index levels directly?</div>
+        <div class="q-text">For the Solactive indices, where does Solactive disseminate real-time index levels directly?</div>
         <div class="chip-row" id="chips-q8">
           <button class="chip" onclick="chip(this,'q8','Bloomberg (BBG)')">Bloomberg (BBG)</button>
           <button class="chip" onclick="chip(this,'q8','Thomson Reuters (TR)')">Thomson Reuters (TR)</button>
@@ -622,7 +622,7 @@
 
       <div class="q-card">
         <div class="q-top"><span class="q-num">Q24</span><span class="q-badge badge-client">Client</span></div>
-        <div class="q-text">Are any of these 60 indices used as underlying for ETFs, derivatives, or structured products where real-time accuracy is a regulatory or exchange requirement?</div>
+        <div class="q-text">Are any of these indices used as underlying for ETFs, derivatives, or structured products where real-time accuracy is a regulatory or exchange requirement?</div>
         <div class="opts">
           <label class="opt-label" onclick="selectOpt(this,'q24','Yes')">
             <input type="radio" name="q24" value="Yes" onchange="toggleDetail('q24-detail','Yes',['Yes','Some'])">
@@ -688,7 +688,7 @@
       <div class="q-card">
         <div class="q-top"><span class="q-num">Q27</span><span class="q-badge badge-tech">Tech</span></div>
         <div class="q-text">Beyond the gaps listed in the MOM (CA treatment, decimal precision, FX rates, index maintenance) — are there any other known functional gaps between Solactive and ICAL?</div>
-        <div class="q-hint">Flag if any were the original reason these 60 indices couldn't be moved to STOXX previously.</div>
+        <div class="q-hint">Flag if any were the original reason these indices couldn't be moved to STOXX previously.</div>
         <textarea id="q27" placeholder="List all gaps — even if they seem minor ..." oninput="autosave()"></textarea>
       </div>
 
@@ -775,7 +775,7 @@
 
       <div class="q-card">
         <div class="q-top"><span class="q-num">Q33</span><span class="q-badge badge-ops">Ops</span></div>
-        <div class="q-text">Which of the 60 indices are highest priority to migrate, and why? (business value, contract risk, simplicity, client demand)</div>
+        <div class="q-text">Which of the indices out of these are highest priority to migrate, and why? (business value, contract risk, simplicity, client demand)</div>
         <textarea id="q33" placeholder="Top 5–10 candidates with rationale. Flag if any are priority due to cost savings or client-specific pressure ..." oninput="autosave()"></textarea>
       </div>
 
